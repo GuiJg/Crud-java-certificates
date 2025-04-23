@@ -18,8 +18,9 @@
 	<description>Spring boot with MongoDB CRUD Intranet</description>
 
 	<properties>
-		<maven.compiler.source>21</maven.compiler.source>
-		<maven.compiler.target>21</maven.compiler.target>
+		<java.version>17</java.version>
+		<maven.compiler.source>17</maven.compiler.source>
+		<maven.compiler.target>17</maven.compiler.target>
 	</properties>
 
 	<dependencies>
@@ -59,19 +60,19 @@
 	</dependencies>
 
 	<build>
-		<finalName>app</finalName> <!-- JAR gerado será target/app.jar -->
+		<finalName>app</finalName>
 		<plugins>
 			<!-- Compilador Java -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<release>21</release>
+					<release>17</release>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
-							<version>1.18.30</version> <!-- ou versão mais recente -->
+							<version>1.18.30</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
