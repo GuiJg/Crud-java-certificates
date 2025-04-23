@@ -18,6 +18,7 @@ public class CertificateModel {
 
     @Id
     private String id;
+    private String file;
     private String name;
     private Number code;
     private String company;
