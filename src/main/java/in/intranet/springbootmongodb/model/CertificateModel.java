@@ -18,6 +18,7 @@ public class CertificateModel {
 
     @Id
     private String id;
+    private String slug;
     private String file;
     private String name;
     private Number code;
@@ -27,7 +28,7 @@ public class CertificateModel {
     private String uf;
     private String type;
     private String status;
-    private Date maturityDate;
+    private String maturityDate;
     private Date createdAt;
     private Date updatedAt;
 }
