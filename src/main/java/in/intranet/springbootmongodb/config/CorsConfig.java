@@ -16,7 +16,7 @@ public class CorsConfig {
                         .allowedOrigins(
                                 "http://localhost:4200",
                                 "https://crud-java-certificates-production.up.railway.app",
-                                "https://absolutacontabilidade.com.br"
+                                "https://intranet.absolutacontabilidade.com.br/"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
