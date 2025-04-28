@@ -123,6 +123,7 @@ public class CertificateController {
         if (certificateRepo.existsById(id)) {
             certificateRepo.deleteById(id);
             return ResponseEntity.ok("Certificado deletado com sucesso");
+
         } else {
             return ResponseEntity.status(404).body("Certificado não encontrado para exclusão");
         }
