@@ -1,5 +1,8 @@
 package in.intranet.springbootmongodb.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import in.intranet.springbootmongodb.enums.Status;
+import in.intranet.springbootmongodb.enums.Types;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,15 +23,16 @@ public class CertificateModel {
     private String id;
     private String slug;
     private String file;
-    private String name;
-    private Number code;
     private String company;
-    private String cnpj;
+    private Number code;
+    private String cpfCnpj;
     private String municipality;
     private String uf;
-    private String type;
-    private String status;
-    private String maturityDate;
+    private Types type;
+    private Status status;
+    private String password;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
+    private Date maturityDate;
     private Date createdAt;
     private Date updatedAt;
 }

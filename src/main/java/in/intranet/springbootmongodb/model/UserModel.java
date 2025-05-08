@@ -1,6 +1,6 @@
 package in.intranet.springbootmongodb.model;
 
-import in.intranet.springbootmongodb.enums.Role;
+import in.intranet.springbootmongodb.enums.Roles;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -33,5 +33,5 @@ public class UserModel {
     private String password;
 
     @Size(min = 1, max = 2, message = "Você pode atribuir no máximo 2 departamentos")
-    private List<Role> roles;
+    private List<Roles> roles;
 }

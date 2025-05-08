@@ -1,6 +1,6 @@
 package in.intranet.springbootmongodb.enums;
 
-public enum Role {
+public enum Roles {
     DEPARTAMENTO_FISCAL,
     DEPARTAMENTO_CONTABIL,
     DEPARTAMENTO_PESSOAL,

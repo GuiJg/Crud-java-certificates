@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.fasterxml.jackson.databind.type.LogicalType.Map;
 
@@ -75,4 +76,16 @@ public class AuthController {
         return ResponseEntity.status(201).body("Usuário registrado com sucesso");
     }
 
+    // ✅ GET all users
+    @GetMapping("/users")
+    public ResponseEntity<?> getAllUsers() {
+        return ResponseEntity.ok(userRepository.findAll());
+    }
+
+    // ✅ GET user by ID
+    @GetMapping("/users/{id}")
+    public ResponseEntity<?> getUserById(@PathVariable String id) {
+        return userRepository.findById(id).<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(404).body("Usuário não encontrado"));
+    }
 }

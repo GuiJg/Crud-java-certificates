@@ -1,6 +1,6 @@
 package in.intranet.springbootmongodb.dto;
 
-import in.intranet.springbootmongodb.enums.Role;
+import in.intranet.springbootmongodb.enums.Roles;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -34,5 +34,5 @@ public class RegisterRequest {
     private String confirmPassword;
 
     @Size(min = 1, max = 2)
-    private List<Role> roles;
+    private List<Roles> roles;
 }
