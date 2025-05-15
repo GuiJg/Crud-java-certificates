@@ -24,7 +24,7 @@ public class CertificateModel {
     private String slug;
     private String file;
     private String company;
-    private Number code;
+    private String code;
     private String cpfCnpj;
     private String municipality;
     private String uf;

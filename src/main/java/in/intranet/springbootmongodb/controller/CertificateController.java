@@ -6,22 +6,28 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.slugify.Slugify;
+import in.intranet.springbootmongodb.dto.CertificateImportDto;
 import in.intranet.springbootmongodb.enums.Roles;
 import in.intranet.springbootmongodb.enums.Status;
+import in.intranet.springbootmongodb.enums.Types;
 import in.intranet.springbootmongodb.model.CertificateModel;
 import in.intranet.springbootmongodb.model.UserModel;
 import in.intranet.springbootmongodb.repository.CertificateRepository;
 import in.intranet.springbootmongodb.repository.UserRepository;
+import in.intranet.springbootmongodb.service.CloudinaryService;
 import in.intranet.springbootmongodb.service.JwtService;
+import in.intranet.springbootmongodb.service.ZipExtractService;
 import in.intranet.springbootmongodb.utils.StatusUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -37,9 +43,17 @@ public class CertificateController {
     private final UserRepository userRepo;
     private final JwtService jwtService;
     private final Cloudinary cloudinary;
+    @Autowired
+    private CloudinaryService.ExcelParserService excelParserService;
+
+    @Autowired
+    private ZipExtractService zipExtractService;
+
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
     private boolean isAdminOrDirector(Set<Roles> roles) {
-        return roles.contains(Roles.ADMINISTRADOR) || roles.contains(Roles.DIRETORES);
+        return roles.contains(Roles.ADMINISTRADOR) || roles.contains(Roles.DIRETOR);
     }
 
     private Set<Roles> extractRolesFromToken(HttpServletRequest request) {
@@ -70,13 +84,7 @@ public class CertificateController {
     public ResponseEntity<List<CertificateModel>> getAllCertificates(HttpServletRequest request) {
         Set<Roles> roles = extractRolesFromToken(request);
         List<CertificateModel> certificates = certificateRepo.findAll();
-        if (!isAdminOrDirector(roles)) {
-            certificates.forEach(c -> {
-                c.setPassword(null);
-                c.setCpfCnpj(null);
-                c.setSlug(null);
-            });
-        }
+
         return ResponseEntity.ok(certificates);
     }
 
@@ -108,7 +116,8 @@ public class CertificateController {
     @PostMapping
     public ResponseEntity<?> createCertificate(@RequestBody CertificateModel certificate, HttpServletRequest request) {
         Set<Roles> roles = extractRolesFromToken(request);
-        if (!isAdminOrDirector(roles)) throw new AccessDeniedException("Apenas administradores ou diretores podem criar certificados");
+        if (!isAdminOrDirector(roles))
+            throw new AccessDeniedException("Apenas administradores ou diretores podem criar certificados");
 
         Slugify slugify = new Slugify();
         certificate.setSlug(slugify.slugify(certificate.getCompany()));
@@ -119,12 +128,55 @@ public class CertificateController {
         return ResponseEntity.status(201).body(certificateRepo.save(certificate));
     }
 
+    @PostMapping("/import")
+    public ResponseEntity<?> importCertificates(
+            @RequestParam("excel") MultipartFile excelFile,
+            @RequestParam("zip") MultipartFile zipFile
+    ) {
+        try {
+            // 1. Ler Excel com POI
+            List<CertificateImportDto> certificados = excelParserService.parseExcel(excelFile);
+
+            // 2. Extrair arquivos .pfx do .zip
+            Map<String, File> arquivosPfx = zipExtractService.extract(zipFile);
+
+            // 3. Para cada linha do Excel, encontrar o .pfx correspondente e processar
+            for (CertificateImportDto cert : certificados) {
+                File pfx = arquivosPfx.get(cert.getFile());
+                if (pfx == null) continue;
+
+                // Exemplo: upload no Cloudinary e salvar no Mongo
+                String url = cloudinaryService.uploadPfx(pfx, cert.getCompany());
+
+                CertificateModel model = new CertificateModel();
+                model.setCompany(cert.getCompany());
+                model.setCpfCnpj(cert.getCpfCnpj());
+                model.setMunicipality(cert.getMunicipality());
+                model.setUf(cert.getUf());
+                model.setType(Types.valueOf(cert.getType().toUpperCase()));
+                model.setPassword(cert.getPassword());
+                model.setMaturityDate(cert.getMaturityDate());
+                model.setCreatedAt(new Date());
+                model.setUpdatedAt(new Date());
+                model.setFile(url);
+
+                certificateRepo.save(model);
+            }
+
+            return ResponseEntity.ok("Importação concluída com sucesso");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erro na importação: " + e.getMessage());
+        }
+    }
+
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadCertificate(@RequestPart("file") MultipartFile file,
                                                @RequestPart("certificate") String certificateJson,
                                                HttpServletRequest request) {
         Set<Roles> roles = extractRolesFromToken(request);
-        if (!isAdminOrDirector(roles)) throw new AccessDeniedException("Apenas administradores ou diretores podem enviar certificados");
+        if (!isAdminOrDirector(roles))
+            throw new AccessDeniedException("Apenas administradores ou diretores podem enviar certificados");
 
         try {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -157,7 +209,8 @@ public class CertificateController {
                                                @RequestPart(value = "file", required = false) MultipartFile file,
                                                HttpServletRequest request) {
         Set<Roles> roles = extractRolesFromToken(request);
-        if (!isAdminOrDirector(roles)) throw new AccessDeniedException("Apenas administradores ou diretores podem editar certificados");
+        if (!isAdminOrDirector(roles))
+            throw new AccessDeniedException("Apenas administradores ou diretores podem editar certificados");
 
         boolean isObjectId = value.matches("^[a-fA-F0-9]{24}$");
         Optional<CertificateModel> existing = isObjectId
@@ -207,7 +260,8 @@ public class CertificateController {
     @DeleteMapping("/{value}")
     public ResponseEntity<?> deleteCertificate(@PathVariable String value, HttpServletRequest request) {
         Set<Roles> roles = extractRolesFromToken(request);
-        if (!isAdminOrDirector(roles)) throw new AccessDeniedException("Apenas administradores ou diretores podem deletar certificados");
+        if (!isAdminOrDirector(roles))
+            throw new AccessDeniedException("Apenas administradores ou diretores podem deletar certificados");
 
         boolean isObjectId = value.matches("^[a-fA-F0-9]{24}$");
         Optional<CertificateModel> certificate = isObjectId

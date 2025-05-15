@@ -4,6 +4,7 @@ import in.intranet.springbootmongodb.dto.LoginRequest;
 import in.intranet.springbootmongodb.dto.RegisterRequest;
 import in.intranet.springbootmongodb.model.UserModel;
 import in.intranet.springbootmongodb.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -87,5 +88,32 @@ public class AuthController {
     public ResponseEntity<?> getUserById(@PathVariable String id) {
         return userRepository.findById(id).<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(404).body("Usuário não encontrado"));
+    }
+
+    // ✅ GET user Login
+    @GetMapping("/logged")
+    public ResponseEntity<UserModel> getCurrentUser(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().build(); // 400 sem body
+        }
+
+        String token = authHeader.substring(7);
+        String email = jwtService.extractEmail(token);
+
+        return userRepository.findByEmail(email)
+                .map(user -> ResponseEntity.ok().body(user))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ❌ DELETE user
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable String id) {
+        if (!userRepository.existsById(id)) {
+            return ResponseEntity.status(404).body("Usuário não encontrado");
+        }
+
+        userRepository.deleteById(id);
+        return ResponseEntity.ok("Usuário deletado com sucesso");
     }
 }

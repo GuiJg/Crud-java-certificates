@@ -21,6 +21,8 @@
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencies>
@@ -111,6 +113,22 @@
             <artifactId>dotenv-java</artifactId>
             <version>2.2.4</version>
         </dependency>
+
+        <!-- Apache POI: atualize para versão mais segura -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.3</version> <!-- ou mais recente -->
+        </dependency>
+
+        <!-- Apache Commons Compress: atualize para corrigir CVE-2024-47554 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.26.1</version> <!-- última versão segura (abril 2025) -->
+        </dependency>
+
+
     </dependencies>
 
     <build>
