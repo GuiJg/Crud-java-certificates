@@ -15,6 +15,7 @@ import in.intranet.springbootmongodb.model.UserModel;
 import in.intranet.springbootmongodb.repository.CertificateRepository;
 import in.intranet.springbootmongodb.repository.UserRepository;
 import in.intranet.springbootmongodb.service.CloudinaryService;
+import in.intranet.springbootmongodb.service.ExcelParserService;
 import in.intranet.springbootmongodb.service.JwtService;
 import in.intranet.springbootmongodb.service.ZipExtractService;
 import in.intranet.springbootmongodb.utils.StatusUtil;
@@ -43,14 +44,6 @@ public class CertificateController {
     private final UserRepository userRepo;
     private final JwtService jwtService;
     private final Cloudinary cloudinary;
-    @Autowired
-    private CloudinaryService.ExcelParserService excelParserService;
-
-    @Autowired
-    private ZipExtractService zipExtractService;
-
-    @Autowired
-    private CloudinaryService cloudinaryService;
 
     private boolean isAdminOrDirector(Set<Roles> roles) {
         return roles.contains(Roles.ADMINISTRADOR) || roles.contains(Roles.DIRETOR);
@@ -126,48 +119,6 @@ public class CertificateController {
         certificate.setStatus(StatusUtil.calculateStatus(certificate.getMaturityDate(), certificate.getCreatedAt()));
 
         return ResponseEntity.status(201).body(certificateRepo.save(certificate));
-    }
-
-    @PostMapping("/import")
-    public ResponseEntity<?> importCertificates(
-            @RequestParam("excel") MultipartFile excelFile,
-            @RequestParam("zip") MultipartFile zipFile
-    ) {
-        try {
-            // 1. Ler Excel com POI
-            List<CertificateImportDto> certificados = excelParserService.parseExcel(excelFile);
-
-            // 2. Extrair arquivos .pfx do .zip
-            Map<String, File> arquivosPfx = zipExtractService.extract(zipFile);
-
-            // 3. Para cada linha do Excel, encontrar o .pfx correspondente e processar
-            for (CertificateImportDto cert : certificados) {
-                File pfx = arquivosPfx.get(cert.getFile());
-                if (pfx == null) continue;
-
-                // Exemplo: upload no Cloudinary e salvar no Mongo
-                String url = cloudinaryService.uploadPfx(pfx, cert.getCompany());
-
-                CertificateModel model = new CertificateModel();
-                model.setCompany(cert.getCompany());
-                model.setCpfCnpj(cert.getCpfCnpj());
-                model.setMunicipality(cert.getMunicipality());
-                model.setUf(cert.getUf());
-                model.setType(Types.valueOf(cert.getType().toUpperCase()));
-                model.setPassword(cert.getPassword());
-                model.setMaturityDate(cert.getMaturityDate());
-                model.setCreatedAt(new Date());
-                model.setUpdatedAt(new Date());
-                model.setFile(url);
-
-                certificateRepo.save(model);
-            }
-
-            return ResponseEntity.ok("Importação concluída com sucesso");
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Erro na importação: " + e.getMessage());
-        }
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -282,4 +233,45 @@ public class CertificateController {
             }
         }).orElseGet(() -> ResponseEntity.status(404).body("Certificado não encontrado"));
     }
+
+    @DeleteMapping
+    public ResponseEntity<?> deleteMultipleCertificates(
+            @RequestBody List<String> values,
+            HttpServletRequest request
+    ) {
+        Set<Roles> roles = extractRolesFromToken(request);
+        if (!isAdminOrDirector(roles))
+            throw new AccessDeniedException("Apenas administradores ou diretores podem deletar certificados");
+
+        List<String> erros = new ArrayList<>();
+
+        for (String value : values) {
+            boolean isObjectId = value.matches("^[a-fA-F0-9]{24}$");
+            Optional<CertificateModel> certOpt = isObjectId
+                    ? certificateRepo.findById(value)
+                    : certificateRepo.findBySlug(value);
+
+            if (certOpt.isPresent()) {
+                try {
+                    CertificateModel cert = certOpt.get();
+                    String publicId = extractPublicId(cert.getFile());
+                    if (publicId != null) {
+                        cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "raw"));
+                    }
+                    certificateRepo.deleteById(cert.getId());
+                } catch (Exception e) {
+                    erros.add("Erro ao deletar " + value + ": " + e.getMessage());
+                }
+            } else {
+                erros.add("Certificado não encontrado: " + value);
+            }
+        }
+
+        if (erros.isEmpty()) {
+            return ResponseEntity.ok("Todos os certificados foram removidos com sucesso.");
+        } else {
+            return ResponseEntity.status(207).body(erros); // HTTP 207 Multi-Status
+        }
+    }
+
 }

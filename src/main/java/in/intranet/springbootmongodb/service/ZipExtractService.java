@@ -14,27 +14,21 @@ public class ZipExtractService {
 
     public Map<String, File> extract(MultipartFile zipFile) throws IOException {
         Map<String, File> fileMap = new HashMap<>();
-
-        // Cria um diretório temporário para extrair os arquivos
-        Path tempDir = Files.createTempDirectory("certificados_zip");
+        Path tempDir = Files.createTempDirectory("certificados");
 
         try (ZipInputStream zis = new ZipInputStream(zipFile.getInputStream())) {
             ZipEntry entry;
-
             while ((entry = zis.getNextEntry()) != null) {
                 if (entry.isDirectory()) continue;
 
-                File outFile = new File(tempDir.toFile(), entry.getName());
+                String fileName = Paths.get(entry.getName()).getFileName().toString();
+                File file = new File(tempDir.toFile(), fileName);
 
-                // Garante que diretórios intermediários existam
-                outFile.getParentFile().mkdirs();
-
-                try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                try (FileOutputStream fos = new FileOutputStream(file)) {
                     zis.transferTo(fos);
                 }
 
-                // Salva no mapa com o nome exato do arquivo (ex: minerva.pfx)
-                fileMap.put(entry.getName(), outFile);
+                fileMap.put(fileName, file);
             }
         }
 
