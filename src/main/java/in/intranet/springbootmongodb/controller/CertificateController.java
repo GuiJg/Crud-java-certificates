@@ -76,7 +76,12 @@ public class CertificateController {
     @GetMapping
     public ResponseEntity<List<CertificateModel>> getAllCertificates(HttpServletRequest request) {
         Set<Roles> roles = extractRolesFromToken(request);
+
         List<CertificateModel> certificates = certificateRepo.findAll();
+
+        for (CertificateModel cert : certificates) {
+            cert.setStatus(StatusUtil.calculateStatus(cert.getMaturityDate(), new Date()));
+        }
 
         return ResponseEntity.ok(certificates);
     }
@@ -84,15 +89,24 @@ public class CertificateController {
     @GetMapping("/status")
     public ResponseEntity<Map<String, Integer>> getStatusSummary() {
         List<CertificateModel> certificates = certificateRepo.findAll();
+
         Map<String, Integer> summary = new HashMap<>();
         summary.put("noPrazo", 0);
         summary.put("aVencer", 0);
         summary.put("vencido", 0);
+
+        Date now = new Date();
+
         for (CertificateModel cert : certificates) {
-            if (cert.getStatus() == Status.NO_PRAZO) summary.put("noPrazo", summary.get("noPrazo") + 1);
-            else if (cert.getStatus() == Status.A_VENCER) summary.put("aVencer", summary.get("aVencer") + 1);
-            else if (cert.getStatus() == Status.VENCIDO) summary.put("vencido", summary.get("vencido") + 1);
+            Status statusAtual = StatusUtil.calculateStatus(cert.getMaturityDate(), now);
+
+            switch (statusAtual) {
+                case NO_PRAZO -> summary.put("noPrazo", summary.get("noPrazo") + 1);
+                case A_VENCER -> summary.put("aVencer", summary.get("aVencer") + 1);
+                case VENCIDO -> summary.put("vencido", summary.get("vencido") + 1);
+            }
         }
+
         return ResponseEntity.ok(summary);
     }
 
