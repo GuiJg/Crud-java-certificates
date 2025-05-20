@@ -12,10 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @RestController
 @RequestMapping("/notifications")
@@ -59,6 +56,19 @@ public class NotificationController {
 
         notificationRepository.deleteById(id);
         return ResponseEntity.ok("Notificação deletada com sucesso");
+    }
+
+    @PutMapping("/read-all")
+    public ResponseEntity<?> markAllAsRead(HttpServletRequest request) {
+        String email = jwtService.extractEmail(request.getHeader("Authorization").substring(7));
+        List<NotificationModel> notifications = userRepo.findByEmail(email);
+
+        for (NotificationModel n : notifications) {
+            n.setRead(true);
+        }
+
+        notificationRepository.saveAll(notifications);
+        return ResponseEntity.ok("Todas notificações marcadas como lidas.");
     }
 
     private Set<Roles> extractRolesFromToken(HttpServletRequest request) {
