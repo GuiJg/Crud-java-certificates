@@ -58,19 +58,6 @@ public class NotificationController {
         return ResponseEntity.ok("Notificação deletada com sucesso");
     }
 
-    @PutMapping("/read-all")
-    public ResponseEntity<?> markAllAsRead(HttpServletRequest request) {
-        String email = jwtService.extractEmail(request.getHeader("Authorization").substring(7));
-        List<NotificationModel> notifications = userRepo.findByEmail(email);
-
-        for (NotificationModel n : notifications) {
-            n.setRead(true);
-        }
-
-        notificationRepository.saveAll(notifications);
-        return ResponseEntity.ok("Todas notificações marcadas como lidas.");
-    }
-
     private Set<Roles> extractRolesFromToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
