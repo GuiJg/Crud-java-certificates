@@ -1,34 +1,25 @@
-// Atualização completa com controle de permissões, validações e correções
-
 package in.intranet.springbootmongodb.controller;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.slugify.Slugify;
-import in.intranet.springbootmongodb.dto.CertificateImportDto;
 import in.intranet.springbootmongodb.enums.Roles;
 import in.intranet.springbootmongodb.enums.Status;
-import in.intranet.springbootmongodb.enums.Types;
 import in.intranet.springbootmongodb.model.CertificateModel;
 import in.intranet.springbootmongodb.model.UserModel;
 import in.intranet.springbootmongodb.repository.CertificateRepository;
 import in.intranet.springbootmongodb.repository.UserRepository;
-import in.intranet.springbootmongodb.service.CloudinaryService;
-import in.intranet.springbootmongodb.service.ExcelParserService;
 import in.intranet.springbootmongodb.service.JwtService;
-import in.intranet.springbootmongodb.service.ZipExtractService;
 import in.intranet.springbootmongodb.utils.StatusUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
