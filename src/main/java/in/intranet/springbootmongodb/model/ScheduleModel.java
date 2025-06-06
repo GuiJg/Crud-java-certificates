@@ -18,6 +18,7 @@ import java.util.Date;
 public class ScheduleModel {
     @Id
     private String id;
+    private String slug;
     private String name;
     private String company;
     private String subject;

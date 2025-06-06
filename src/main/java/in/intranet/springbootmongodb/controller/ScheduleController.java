@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
+
 @RestController
 @RequestMapping("/schedules")
 public class ScheduleController {
@@ -74,9 +75,6 @@ public class ScheduleController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateSchedule(@PathVariable String id, @RequestBody ScheduleModel model, HttpServletRequest request) {
         Optional<ScheduleModel> existing = scheduleRepository.findById(id);
-        if (existing.isEmpty()) {
-            return ResponseEntity.status(404).body("Agendamento não encontrado");
-        }
 
         ScheduleModel scheduleToUpdate = existing.get();
         scheduleToUpdate.setName(model.getName());
@@ -93,10 +91,7 @@ public class ScheduleController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteSchedule(@PathVariable String id) {
-        if (!scheduleRepository.existsById(id)) {
-            return ResponseEntity.status(404).body("Agendamento não encontrado");
-        }
         scheduleRepository.deleteById(id);
-        return ResponseEntity.ok("Agendamento removido com sucesso");
+        return null;
     }
 }
