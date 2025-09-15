@@ -1,34 +1,25 @@
-// Atualização completa com controle de permissões, validações e correções
-
 package in.intranet.springbootmongodb.controller;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.slugify.Slugify;
-import in.intranet.springbootmongodb.dto.CertificateImportDto;
 import in.intranet.springbootmongodb.enums.Roles;
 import in.intranet.springbootmongodb.enums.Status;
-import in.intranet.springbootmongodb.enums.Types;
 import in.intranet.springbootmongodb.model.CertificateModel;
 import in.intranet.springbootmongodb.model.UserModel;
 import in.intranet.springbootmongodb.repository.CertificateRepository;
 import in.intranet.springbootmongodb.repository.UserRepository;
-import in.intranet.springbootmongodb.service.CloudinaryService;
-import in.intranet.springbootmongodb.service.ExcelParserService;
 import in.intranet.springbootmongodb.service.JwtService;
-import in.intranet.springbootmongodb.service.ZipExtractService;
 import in.intranet.springbootmongodb.utils.StatusUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -76,7 +67,12 @@ public class CertificateController {
     @GetMapping
     public ResponseEntity<List<CertificateModel>> getAllCertificates(HttpServletRequest request) {
         Set<Roles> roles = extractRolesFromToken(request);
+
         List<CertificateModel> certificates = certificateRepo.findAll();
+
+        for (CertificateModel cert : certificates) {
+            cert.setStatus(StatusUtil.calculateStatus(cert.getMaturityDate(), new Date()));
+        }
 
         return ResponseEntity.ok(certificates);
     }
@@ -84,15 +80,24 @@ public class CertificateController {
     @GetMapping("/status")
     public ResponseEntity<Map<String, Integer>> getStatusSummary() {
         List<CertificateModel> certificates = certificateRepo.findAll();
+
         Map<String, Integer> summary = new HashMap<>();
         summary.put("noPrazo", 0);
         summary.put("aVencer", 0);
         summary.put("vencido", 0);
+
+        Date now = new Date();
+
         for (CertificateModel cert : certificates) {
-            if (cert.getStatus() == Status.NO_PRAZO) summary.put("noPrazo", summary.get("noPrazo") + 1);
-            else if (cert.getStatus() == Status.A_VENCER) summary.put("aVencer", summary.get("aVencer") + 1);
-            else if (cert.getStatus() == Status.VENCIDO) summary.put("vencido", summary.get("vencido") + 1);
+            Status statusAtual = StatusUtil.calculateStatus(cert.getMaturityDate(), now);
+
+            switch (statusAtual) {
+                case NO_PRAZO -> summary.put("noPrazo", summary.get("noPrazo") + 1);
+                case A_VENCER -> summary.put("aVencer", summary.get("aVencer") + 1);
+                case VENCIDO -> summary.put("vencido", summary.get("vencido") + 1);
+            }
         }
+
         return ResponseEntity.ok(summary);
     }
 
